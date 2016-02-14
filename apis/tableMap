@@ -1,0 +1,252 @@
+--TableMap 3 API for CC
+--By Gonow32 - Do not modify this code! (unless you're me or an expert :P)
+
+local Game = {
+  tMap = {},
+  tPlayer = {},
+}
+
+local Player = {
+  bgColour = 0,
+  sChar = " ",
+  nX = 1,
+  nY = 1,
+}
+
+local Map = {
+  nWidth = 1,
+  nHeight = 1,
+  tContents = {},
+  nColour = 0,
+}
+
+local function isType(obj,type2)
+  if not obj then
+    error("obj expected")
+  elseif not type2 then
+    error("type expected")
+  end
+  if type(obj) ~= "table" then
+    return false
+  end
+  for i,v in pairs(type2) do
+    if obj[i] then
+      if type(obj[i]) == type(v) then
+        return true
+      else
+        return false
+      end
+    else
+      return false
+    end
+  end
+end
+
+function createMap(width, height, bgColour)
+  local tempMap = {}
+  tempMap.nWidth = width
+  tempMap.nHeight = height
+  tempMap.tContents = {}
+  tempMap.nColour = bgColour
+  if not bgColour then
+    error("expected bgColour (3rd argument)")
+  end
+  for i = 1,width do
+    tempMap.tContents[i] = {}
+    for i2 = 1,height do
+      tempMap.tContents[i][i2] = bgColour
+    end
+  end
+  return tempMap
+end
+
+function loadMap(file)
+  local ok, err = pcall(dofile, file)
+  if ok then
+    if type(err) == "table" then
+      if isType(err, Map) then
+        return err
+      else
+        error("not a map")
+      end
+    else
+      error("invalid file")
+    end
+  else
+    error("invalid file")
+  end
+end
+
+function createPlayer(bgColour, sText, x, y)
+  if not bgColour then
+    error("bgColour expected")
+  elseif not sText then
+    error("sChar expected")
+  elseif not x then
+    error("x expected")
+  elseif not y then
+    error("y expected")
+  end
+  return {
+    nColour = bgColour,
+    sChar = sText:sub(1,1),
+    nX = x,
+    nY = y,
+  }
+end
+
+function createGame(map, player)
+  if isType(map,Map) then
+    if isType(player, Player) then
+      return {
+        tMap = map,
+        tPlayer = player,
+      }
+    else
+      error("arg2 is not of type Player")
+    end
+  else
+    error("arg1 is not of type Map")
+  end
+end
+
+function render(game, xOffset, yOffset)
+  if not xOffset then
+    xOffset = 0
+  end
+  if not yOffset then
+    yOffset = 0
+  end
+  if isType(game,Game) then
+    if term.current().setVisible then
+      term.current().setVisible(false)
+    end
+    term.setBackgroundColour(colours.black)
+    term.clear()
+    for w = 1, game.tMap.nWidth do
+      for h = 1, game.tMap.nHeight do
+        paintutils.drawPixel(w+xOffset,h+yOffset,game.tMap.tContents[w][h])
+      end
+    end
+    term.setCursorPos(game.tPlayer.nX + xOffset, game.tPlayer.nY + yOffset)
+    term.setBackgroundColour(game.tPlayer.nColour)
+    term.setTextColour(colours.black)
+    term.write(game.tPlayer.sChar)
+    xOffset = nil
+    yOffset = nil
+    term.setBackgroundColour(colours.black)
+    term.setTextColour(colours.white)
+    if term.current().setVisible then
+      term.current().setVisible(true)
+    end
+  else
+    xOffset = nil
+    yOffset = nil
+    error("arg1 is not of type Game")
+  end
+end
+
+function move(game,x,y)
+  if isType(game,Game) then
+    game.tPlayer.nX = x
+    game.tPlayer.nY = y
+  else
+    error("arg1 is not of type Game")
+  end
+end
+
+function moveUp(game)
+  if isType(game,Game) then
+    local bgColour = game.tMap.nColour
+    local x = game.tPlayer.nX
+    local y = game.tPlayer.nY
+    if (y-1) >= 1 and (y-1) <= game.tMap.nHeight then
+      if game.tMap.tContents[x][y-1] then
+        if game.tMap.tContents[x][y-1] == bgColour then
+          move(game,x,y-1)
+          return true
+        else
+          return false
+        end
+      else
+        return false
+      end
+    else
+      return false
+    end
+  else
+    error("arg1 is not of type Game")
+  end
+end
+
+function moveDown(game)
+  if isType(game,Game) then
+    local bgColour = game.tMap.nColour
+    local x = game.tPlayer.nX
+    local y = game.tPlayer.nY
+    if (y+1) >= 1 and (y+1) <= game.tMap.nHeight then
+      if game.tMap.tContents[x][y+1] then
+        if game.tMap.tContents[x][y+1] == bgColour then
+          move(game,x,y+1)
+          return true
+        else
+          return false
+        end
+      else
+        return false
+      end
+    else
+      return false
+    end
+  else
+    error("arg1 is not of type Game")
+  end
+end
+
+function moveLeft(game)
+  if isType(game,Game) then
+    local bgColour = game.tMap.nColour
+    local x = game.tPlayer.nX
+    local y = game.tPlayer.nY
+    if (x-1) >= 1 and (x-1) <= game.tMap.nWidth then
+      if game.tMap.tContents[x-1][y] then
+        if game.tMap.tContents[x-1][y] == bgColour then
+          move(game,x-1,y)
+          return true
+        else
+          return false
+        end
+      else
+        return false
+      end
+    else
+      return false
+    end
+  else
+    error("arg1 is not of type Game")
+  end
+end
+
+function moveRight(game)
+  if isType(game,Game) then
+    local bgColour = game.tMap.nColour
+    local x = game.tPlayer.nX
+    local y = game.tPlayer.nY
+    if (x+1) >= 1 and (x+1) <= game.tMap.nWidth then
+      if game.tMap.tContents[x+1][y] then
+        if game.tMap.tContents[x+1][y] == bgColour then
+          move(game,x+1,y)
+          return true
+        else
+          return false
+        end
+      else
+        return false
+      end
+    else
+      return false
+    end
+  else
+    error("arg1 is not of type Game")
+  end
+end
