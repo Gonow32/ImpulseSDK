@@ -3,4 +3,5 @@ return {
   "startup",
   "apis/tableMap",
   "update",
+  "lua-preproc",
 }
