@@ -1,0 +1,67 @@
+os.pullEvent = os.pullEventRaw
+local w,h = term.getSize()
+term.clear()
+term.setCursorPos(1,1)
+print("Impulse SDK Installer")
+local t = http.get("https://raw.githubusercontent.com/Gonow32/ImpulseSDK/master/build")
+if t then
+  term.write("Update to Impulse SDK "..t.readAll().."? [Y/N]")
+  local event
+  local key
+  repeat
+    event, key = os.pullEvent("key")
+  until key == keys.y or key == keys.n
+  sleep(0.1)
+  if key == keys.n then
+    term.clear()
+    term.setCursorPos(1,1)
+    return
+  end
+  local t2 = http.get("https://raw.githubusercontent.com/Gonow32/ImpulseSDK/master/filelist")
+  if t2 then
+    local flist = loadstring(t2.readAll())()
+    local onepercent = 100 / #flist
+    local percentage = 0
+    for i,v in pairs(flist) do
+      local t3 = http.get("https://raw.githubusercontent.com/Gonow32/Impulse/master/"..v)
+      if t3 then
+        local f = fs.open("/"..v,"w")
+        local t4 = t3.readAll()
+        if t4 then
+          f.write(t4)
+        end
+        f.close()
+        --local x,y = term.getCursorPos()
+        print("Downloaded "..v)
+        local x, y = term.getCursorPos()
+        y = y - 2
+        percentage = percentage + onepercent
+        local sp = 1
+        local found = false
+        for i = 1,#tostring(percentage) do
+          if tostring(percentage):sub(i,i) == "." then
+            sp = i - 1
+            found = true
+            break
+          end
+        end
+        if found == false then
+          sp = #tostring(percentage)
+        end
+        local sper = "["..tostring(percentage):sub(1,sp).."%]"
+        term.setCursorPos(w-#sper, y+1)
+        term.write(sper)
+      else
+        printError("Error downloading "..v)
+        return
+      end
+    end
+    print()
+    print("Done!")
+  else
+    printError("Server error!")
+  end
+else
+  printError("Server error!")
+  return
+end
