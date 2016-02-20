@@ -1,0 +1,66 @@
+--lua-preproc by MultMine
+local args = {...}
+
+if #args < 1 then
+  print("Usage: lua-preproc <input> [output]")
+  return
+end
+
+local maxdepth = 32
+
+local input = shell.resolve(args[1])
+local output = args[2] and shell.resolve(args[2])
+or input .. ".out"
+
+--[[
+local f = fs.open(input, "r")
+local inp = f.readAll()
+f.close()
+
+local _lines = {}
+local tmp = ""
+for i = 1, #inp do
+  if inp:sub(i, i) == "\n" then
+    table.insert(_lines, tmp)
+    tmp = ""
+  else
+    tmp = tmp .. inp:sub(i, i)
+  end
+end
+table.insert(_lines, tmp)
+sleep(0)
+]]
+
+local preproc
+function preproc(lines, depth)
+  if depth and depth >= maxdepth then
+    return ""
+  end
+  local oldShellDir = shell.dir()
+  shell.setDir(fs.getDir(input))
+  local outparts = {}
+  for i, v in ipairs(lines) do
+    if v:sub(1, 11) == "--#include " then
+      local _lines = {}
+      for line in io.lines(shell.resolve(v:sub(12))) do
+        table.insert(_lines, line)
+      end
+      table.insert(outparts, preproc(_lines, (depth or 0) + 1))
+    else
+      table.insert(outparts, v)
+    end
+  end
+  shell.setDir(oldShellDir)
+  return table.concat(outparts, "\n")
+end
+
+local lines = {}
+for line in io.lines(input) do
+  table.insert(lines, line)
+end
+
+local out = preproc(lines)
+
+local f = fs.open(output, "w")
+f.write(out)
+f.close()
