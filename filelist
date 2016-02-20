@@ -1,3 +1,5 @@
 return {
   "build",
+  "startup",
+  "apis/tableMap",
 }
