@@ -23,7 +23,7 @@ if t then
     local onepercent = 100 / #flist
     local percentage = 0
     for i,v in pairs(flist) do
-      local t3 = http.get("https://raw.githubusercontent.com/Gonow32/Impulse/master/"..v)
+      local t3 = http.get("https://raw.githubusercontent.com/Gonow32/ImpulseSDK/master/"..v)
       if t3 then
         local f = fs.open("/"..v,"w")
         local t4 = t3.readAll()
