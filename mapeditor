@@ -1,0 +1,191 @@
+local w,h = term.getSize()
+local tMap = {}
+local currentColour = colours.white
+local xOffset = 0
+local yOffset = 0
+
+function clearScr()
+  term.clear()
+  term.setCursorPos(1,1)
+end
+
+function newMap()
+  local bgColour = colours.black
+  term.setBackgroundColour(colours.black)
+  clearScr()
+  paintutils.drawFilledBox(1,h-1,w,h,colours.white)
+  term.setTextColour(colours.black)
+  term.setCursorPos(1,h-1)
+  term.write("Background Colour: ")
+  local input = read()
+  local matched = false
+  for i,v in pairs(colours) do
+    if type(v) ~= "function" then
+      if input:lower() == i then
+        bgColour = v
+        matched = true
+      end
+    end
+  end
+  if not matched then
+    for i,v in pairs(colors) do
+      if type(v) ~= "function" then
+        if input:lower() == i then
+          bgColour = v
+          matched = true
+        end
+      end
+    end
+  end
+  tMap = {
+    nWidth = w,
+    nHeight = h,
+    nColour = bgColour,
+    tContents = {},
+  }
+  for i = 1,w do
+    tMap.tContents[i] = {}
+    for i2 = 1,h do
+      tMap.tContents[i][i2] = bgColour
+    end
+  end
+end
+
+function saveFile(location)
+  local t = "return "..textutils.serialize(tMap)
+  local f = fs.open(location,"w")
+  f.write(t)
+  f.close()
+end
+
+function loadFile(file)
+  local ok, err = pcall(dofile,file)
+  if ok then
+    if type(err) == "table" then
+      if err.nWidth and err.nHeight and err.tContents and err.nColour then
+        tMap.nWidth = err.nWidth
+        tMap.nHeight = err.nHeight
+        tMap.nColour = err.nColour
+        tMap.tContents = {}
+        for i = 1,w do
+          tMap.tContents[i] = {}
+          if err.tContents[i] then
+            for i2 = 1,h do
+              if err.tContents[i][i2] then
+                tMap.tContents[i][i2] = err.tContents[i][i2]
+              end
+            end
+          end
+        end
+      else
+        newMap()   
+      end
+    else
+      newMap()
+    end
+  else
+    newMap()
+  end
+end
+
+function render()
+  if term.current().setVisible then
+    term.current().setVisible(false)
+  end
+  term.setBackgroundColour(colours.black)
+  term.setTextColour(colours.white)
+  clearScr()
+  for i = 1,#tMap.tContents do
+    for i2 = 1,#tMap.tContents[i] do
+      paintutils.drawPixel(i+xOffset,i2+yOffset,tMap.tContents[i][i2])
+    end
+  end
+  paintutils.drawFilledBox(1,h-1,w,h,colours.white)
+  term.setCursorPos(1,h-1)
+  term.setTextColour(colours.black)
+  local colourText = ""
+  for i,v in pairs(colours) do
+    if type(v) ~= "function" then
+      if v == currentColour then
+        colourText = i
+      end
+    end
+  end
+  print("Current Colour: "..colourText)
+  --print("Current Colour: "..tostring(currentColour))
+  term.write("[S]ave [L]oad [C]olour [N]ew [E]xit [Arrows] Move")
+  if term.current().setVisible then
+    term.current().setVisible(true)
+  end
+end
+
+newMap()
+while true do
+  render()
+  local e = {os.pullEvent()}
+  if e[1] == "mouse_click" or e[1] == "mouse_drag" then
+    if (e[3]-xOffset) >= 1 and (e[3]-xOffset) <= w then
+      if (e[4]-yOffset) >= 1 and (e[4]-yOffset) <= h then
+        tMap.tContents[e[3]-xOffset][e[4]-yOffset] = currentColour
+      end
+    end
+  elseif e[1] == "key" then
+    if e[2] == keys.c then
+      sleep(0.1)
+      term.setCursorPos(1,h-1)
+      term.setBackgroundColour(colours.white)
+      term.setTextColour(colours.black)
+      term.clearLine()
+      term.write("Current Colour: ")
+      local input = read()
+      local found = false
+      for i,v in pairs(colours) do
+        if input:lower() == i then
+          currentColour = v
+          found = true
+        end
+      end
+      if found == false then
+        for i,v in pairs(colors) do
+          if input:lower() == i then
+            currentColour = v
+          end
+        end
+      end
+    elseif e[2] == keys.n then
+      newMap()
+    elseif e[2] == keys.s then
+      sleep(0.1)
+      term.setCursorPos(1,h-1)
+      term.setBackgroundColour(colours.white)
+      term.setTextColour(colours.black)
+      term.clearLine()
+      term.write("Save: ")
+      local input = read()
+      saveFile(input)
+    elseif e[2] == keys.l then
+      sleep(0.1)
+      term.setCursorPos(1,h-1)
+      term.setBackgroundColour(colours.white)
+      term.setTextColour(colours.black)
+      term.clearLine()
+      term.write("Load: ")
+      local input = read()
+      loadFile(input)
+    elseif e[2] == keys.e then
+      sleep(0.1)
+      term.setBackgroundColour(colours.black)
+      term.setTextColour(colours.white)
+      clearScr()
+      return
+    elseif e[2] == keys.up then
+      yOffset = yOffset + 1
+    elseif e[2] == keys.down then
+      yOffset = yOffset - 1
+    elseif e[2] == keys.left then
+      xOffset = xOffset + 1
+    elseif e[2] == keys.right then
+      xOffset = xOffset - 1
+    end
+  end
+end
