@@ -11,7 +11,7 @@ if fs.exists("/build") then
   end
 end
 print("You are using the Impulse SDK ("..t..").")
-term.setTextColour(colours.grey)
+term.setTextColour(colours.lightGrey)
 if not fs.isDir("/apis") then
   if fs.exists("/apis") then
     fs.delete("/apis")
@@ -20,8 +20,8 @@ if not fs.isDir("/apis") then
 end
 local t2 = fs.list("/apis")
 for i,v in pairs(t2) do
-  local ok, err = pcall(os.loadAPI,"/apis"..v)
-  if ok then
+  local ok, err = pcall(os.loadAPI,"/apis/"..v)
+  if ok == true then
     print("Loaded API "..v)
   else
     printError("Error loading API "..v..": "..err)
