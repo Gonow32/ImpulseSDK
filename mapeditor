@@ -21,7 +21,7 @@ function newMap()
   local matched = false
   for i,v in pairs(colours) do
     if type(v) ~= "function" then
-      if input:lower() == i then
+      if input:lower() == i:lower() then
         bgColour = v
         matched = true
       end
@@ -30,7 +30,7 @@ function newMap()
   if not matched then
     for i,v in pairs(colors) do
       if type(v) ~= "function" then
-        if input:lower() == i then
+        if input:lower() == i:lower() then
           bgColour = v
           matched = true
         end
@@ -140,14 +140,14 @@ while true do
       local input = read()
       local found = false
       for i,v in pairs(colours) do
-        if input:lower() == i then
+        if input:lower() == i:lower() then
           currentColour = v
           found = true
         end
       end
       if found == false then
         for i,v in pairs(colors) do
-          if input:lower() == i then
+          if input:lower() == i:lower() then
             currentColour = v
           end
         end
