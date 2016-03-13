@@ -17,6 +17,7 @@ if t then
     term.setCursorPos(1,1)
     return
   end
+  print()
   local t2 = http.get("https://raw.githubusercontent.com/Gonow32/ImpulseSDK/master/filelist")
   if t2 then
     local flist = loadstring(t2.readAll())()
