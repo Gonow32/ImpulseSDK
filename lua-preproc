@@ -12,42 +12,77 @@ local input = shell.resolve(args[1])
 local output = args[2] and shell.resolve(args[2])
 or input .. ".out"
 
---[[
-local f = fs.open(input, "r")
-local inp = f.readAll()
-f.close()
-
-local _lines = {}
-local tmp = ""
-for i = 1, #inp do
-  if inp:sub(i, i) == "\n" then
-    table.insert(_lines, tmp)
-    tmp = ""
-  else
-    tmp = tmp .. inp:sub(i, i)
-  end
-end
-table.insert(_lines, tmp)
-sleep(0)
-]]
-
 local preproc
 function preproc(lines, depth)
   if depth and depth >= maxdepth then
+    if term.isColor() then
+      term.setTextColor(colors.yellow)
+    end
+    write("Warning: ")
+    term.setTextColor(colors.white)
+    print("possible recursion detected")
     return ""
   end
   local oldShellDir = shell.dir()
   shell.setDir(fs.getDir(input))
   local outparts = {}
+  local cond = 0
+  local condWasTrue = 0
+  local skipFalse = nil
   for i, v in ipairs(lines) do
-    if v:sub(1, 11) == "--#include " then
-      local _lines = {}
-      for line in io.lines(shell.resolve(v:sub(12))) do
-        table.insert(_lines, line)
+    if v:sub(1, 6) == "--#if " then
+      cond = cond + 1
+      if not skipFalse then
+        if not loadstring("return " .. v:sub(7))() then
+          skipFalse = cond
+        else
+          condWasTrue = condWasTrue + 1
+        end
       end
-      table.insert(outparts, preproc(_lines, (depth or 0) + 1))
-    else
-      table.insert(outparts, v)
+    elseif v:sub(1, 10) == "--#elseif " then
+      if (not skipFalse or cond == skipFalse) then
+        if not loadstring("return " .. v:sub(11))() then
+          skipFalse = cond
+        else
+          skipFalse = nil
+          condWasTrue = cond
+        end
+      end
+    elseif v:sub(1, 7) == "--#else" then
+      if not skipFalse or cond == skipFalse then
+        if cond >= condWasTrue then
+          skipFalse = nil
+          condWasTrue = cond
+        else
+          skipFalse = cond
+        end
+      end
+    elseif v:sub(1, 8) == "--#endif" then
+      cond = cond - 1
+      if skipFalse and cond < skipFalse then
+        skipFalse = nil
+        if condWasTrue == cond then
+          condWasTrue = condWasTrue - 1
+        end
+      end
+    elseif not skipFalse then
+      if v:sub(1, 11) == "--#include " then
+        local _lines = {}
+        for line in io.lines(shell.resolve(v:sub(12))) do
+          table.insert(_lines, line)
+        end
+        table.insert(outparts, preproc(_lines, (depth or 0) + 1))
+      elseif v:sub(1, 14) == "--#includeapi " then
+        table.insert(outparts, "_api(\"" .. fs.getName(v:sub(15)) .. "\", function()")
+        local _lines = {}
+        for line in io.lines(shell.resolve(v:sub(15))) do
+          table.insert(_lines, line)
+        end
+        table.insert(outparts, preproc(_lines, (depth or 0) + 1))
+        table.insert(outparts, "end)")
+      else
+        table.insert(outparts, v)
+      end
     end
   end
   shell.setDir(oldShellDir)
@@ -59,7 +94,16 @@ for line in io.lines(input) do
   table.insert(lines, line)
 end
 
-local out = preproc(lines)
+local out = [[
+local function _api(name, fn)
+  local env = setmetatable({}, {__index = getfenv()})
+  setfenv(fn, env)()
+  _G[name] = {}
+  for k, v in pairs(env) do
+    _G[name][k] = v
+  end
+end
+]] .. preproc(lines)
 
 local f = fs.open(output, "w")
 f.write(out)
